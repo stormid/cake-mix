@@ -49,6 +49,13 @@ public class Configuration {
         return config;
     }
 
+    public static Configuration Create(ISetupContext context, Action<Configuration> configure = null, string solutionFilePathPattern = _solutionFilePathPattern, string defaultBuildConfiguration = _defaultBuildConfiguration) {
+        var config = new Configuration(context, solutionFilePathPattern, _defaultBuildConfiguration);
+        configure?.Invoke(config);
+        config.Log(context.Log);
+        return config;
+    }
+
     public static Configuration Create(ISetupContext context, string solutionFilePathPattern = _solutionFilePathPattern, Action<Configuration> configure = null) {
         var config = new Configuration(context, solutionFilePathPattern, _defaultBuildConfiguration);
         configure?.Invoke(config);
@@ -56,11 +63,14 @@ public class Configuration {
         return config;
     }
 
-    public static Configuration Create(ISetupContext context, string solutionFilePathPattern = _solutionFilePathPattern, string defaultBuildConfiguration = _defaultBuildConfiguration) {
+    public static Configuration Create(ISetupContext context, string solutionFilePathPattern = _solutionFilePathPattern, string defaultBuildConfiguration = _defaultBuildConfiguration, Action<Configuration> configure = null) {
         var config = new Configuration(context, solutionFilePathPattern, defaultBuildConfiguration);
+        configure?.Invoke(config);
         config.Log(context.Log);
         return config;
     }
+
+    public Dictionary<string, string> Items { get; } = new Dictionary<string, string>();
 
     public BuildVersion Version { get; }
 
@@ -70,9 +80,11 @@ public class Configuration {
 
     private Configuration(ISetupContext context, string solutionFilePathPattern = "*.sln", string defaultBuildConfiguration = "Release", DirectoryPath artifactsRootPath = null)
     {
-        var solutionPath = context.GetFiles(solutionFilePathPattern).First();
-        if(!context.FileExists(solutionPath)) {
-            throw new Exception("Unable to find valid solution file");
+        var solutionPath = context.GetFiles(solutionFilePathPattern).FirstOrDefault();
+        
+        if(solutionPath == null || !context.FileExists(solutionPath)) 
+        {
+            throw new Exception("Cant continue without a valid solution file");
         }
 
         var buildConfiguration = context.Argument("configuration", defaultBuildConfiguration);
@@ -102,7 +114,7 @@ public struct Artifact {
     public string Name { get; set; }
     public FilePath Path { get; set; }
 
-    public Artifact(ArtifactTypeOption type, string name, FilePath path, string category = "N/A")
+    public Artifact(ArtifactTypeOption type, string name, FilePath path, string category = "none")
     {
         Type = type;
         Name = name;
@@ -144,11 +156,13 @@ public class SolutionParameters {
     public FilePath Path { get; }
 
     public string BuildConfiguration { get; }
+
     public IEnumerable<CustomProjectParserResult> Projects { get; } = Enumerable.Empty<CustomProjectParserResult>();
     public IEnumerable<CustomProjectParserResult> WebProjects => Projects.Where(IsWebProject);
 
     public IEnumerable<CustomProjectParserResult> TestProjects => Projects.Where(IsCliTestProject);
     public IEnumerable<CustomProjectParserResult> NuGetProjects => Projects.Where(IsNuGetPackableProject);
+    public IEnumerable<CustomProjectParserResult> ConsoleProjects => Projects.Where(IsConsoleProject);
 
     public SolutionParameters(ICakeContext context, FilePath solutionPath, string buildConfiguration) {
         this.context = context;
@@ -170,6 +184,10 @@ public class SolutionParameters {
         p => !string.IsNullOrWhiteSpace(p?.NetCore?.PackageId) && p.NetCore.IsPackable && !p.NetCore.IsWeb
     };
 
+    public ISet<Func<CustomProjectParserResult, bool>> ConsoleProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
+        p => p?.OutputType?.Equals("Exe") ?? false
+    };
+
     public SolutionParameters IncludeAsWebProject(Func<CustomProjectParserResult, bool> includeFunc) {
         WebProjectResolvers.Add(includeFunc);
         return this;
@@ -185,6 +203,11 @@ public class SolutionParameters {
         return this;
     }
 
+    public SolutionParameters IncludeAsConsoleProject(Func<CustomProjectParserResult, bool> includeFunc) {
+        ConsoleProjectResolvers.Add(includeFunc);
+        return this;
+    }    
+
     private bool IsWebProject(CustomProjectParserResult project) {
         return WebProjectResolvers.Any(resolver => resolver(project));
     }
@@ -192,12 +215,17 @@ public class SolutionParameters {
     private bool IsCliTestProject(CustomProjectParserResult project) {
         return TestProjectResolvers.Any(resolver => resolver(project));
     }
+    
     private bool IsNuGetPackableProject(CustomProjectParserResult project) {
         return NuGetProjectResolvers.Any(resolver => resolver(project));
     }
 
+    private bool IsConsoleProject(CustomProjectParserResult project) {
+        return ConsoleProjectResolvers.Any(resolver => resolver(project));
+    }
+
     public void Log(ICakeLog logger) {
-        logger.Information("------\nProjects - Total: {0}, Web: {1}, Test: {2}, Library: {3}\n------", Projects.Count(), WebProjects.Count(), TestProjects.Count(), NuGetProjects.Count());
+        logger.Information("------\nProjects - Total: {0}, Web: {1}, Test: {2}, Library: {3}, Console: {4}\n------", Projects.Count(), WebProjects.Count(), TestProjects.Count(), NuGetProjects.Count(), ConsoleProjects.Count());
     }
 }
 

@@ -1,7 +1,7 @@
 #load "Configuration.cake"
 
 Task("CI:VSTS:UploadArtifacts")
-    // .WithCriteria<Configuration>((ctx, config) => BuildSystem.IsRunningOnVSTS || TFBuild.IsRunningOnTFS)
+    .WithCriteria<Configuration>((ctx, config) => BuildSystem.IsRunningOnVSTS || TFBuild.IsRunningOnTFS)
     .IsDependentOn("Publish")
     .IsDependeeOf("CI:UploadArtifacts")
     .Does<Configuration>(config => 
