@@ -10,17 +10,18 @@ Task("Test:XUnit2")
     CreateDirectory($"{config.Artifacts.Root}/test-results");
 
     foreach(var testProject in config.Solution.TestProjects) {
+        var testAssembly = $"{testProject.OutputPaths.First()}/{testProject.AssemblyName}.dll";
         var settings = new XUnit2Settings {
-            XmlReportV1 = true,
-            ReportName = $"{testProject.AssemblyName}.xml",
+            XmlReport = true,
+            ReportName = testProject.AssemblyName,
             OutputDirectory = $"{config.Artifacts.Root}/test-results",
         };
         
-        XUnit2(testProject.ProjectFilePath.ToString(), settings);
+        XUnit2(testAssembly, settings);
     }
 });
 
-Task("CI:VSTS:NUnit:PublishTestResults")
+Task("CI:VSTS:XUnit:PublishTestResults")
     .WithCriteria<Configuration>((ctx, config) => BuildSystem.IsRunningOnVSTS || TFBuild.IsRunningOnTFS)
     .IsDependentOn("Test")
     .IsDependeeOf("Publish")
@@ -28,10 +29,17 @@ Task("CI:VSTS:NUnit:PublishTestResults")
 {
     Information("Publishing Test results from {0}", config.Artifacts.Root);
     var testResults = GetFiles($"{config.Artifacts.Root}/test-results/**/*.xml").Select(file => MakeAbsolute(file).ToString()).ToArray();
-    TFBuild.Commands.PublishTestResults(new TFBuildPublishTestResultsData() {
-        Configuration = config.Solution.BuildConfiguration,
-        MergeTestResults = true,
-        TestResultsFiles = testResults,
-        TestRunner = TFTestRunnerType.XUnit
-    });    
+    if(testResults.Any()) 
+    {
+        TFBuild.Commands.PublishTestResults(new TFBuildPublishTestResultsData() {
+            Configuration = config.Solution.BuildConfiguration,
+            MergeTestResults = true,
+            TestResultsFiles = testResults,
+            TestRunner = TFTestRunnerType.XUnit
+        });    
+    }
+    else
+    {
+        Warning("No test results to publish");
+    }
 });
