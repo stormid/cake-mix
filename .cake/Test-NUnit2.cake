@@ -10,11 +10,12 @@ Task("Test:NUnit")
     CreateDirectory($"{config.Artifacts.Root}/test-results");
 
     foreach(var testProject in config.Solution.TestProjects) {
-        var testAssembly = $"{testProject.OutputPaths.First()}/{testProject.AssemblyName}.dll";
+        var assemblyName = config.Solution.GetProjectName(testProject);
+        var testAssembly = $"{testProject.OutputPaths.First()}/{assemblyName}.dll";
         var settings = new NUnitSettings() {
             NoLogo = true,
-            ResultsFile = $"{config.Artifacts.Root}/test-results/{testProject.AssemblyName}.xml",
-            OutputFile = $"{config.Artifacts.Root}/test-results/{testProject.AssemblyName}.log",
+            ResultsFile = $"{config.Artifacts.Root}/test-results/{assemblyName}.xml",
+            OutputFile = $"{config.Artifacts.Root}/test-results/{assemblyName}.log",
         };
 
         NUnit(testAssembly, settings);
@@ -22,7 +23,7 @@ Task("Test:NUnit")
 });
 
 Task("CI:VSTS:NUnit:PublishTestResults")
-    //.WithCriteria<Configuration>((ctx, config) => BuildSystem.IsRunningOnVSTS || TFBuild.IsRunningOnTFS)
+    .WithCriteria<Configuration>((ctx, config) => BuildSystem.IsRunningOnVSTS || TFBuild.IsRunningOnTFS)
     .IsDependentOn("Test")
     .IsDependeeOf("Publish")
     .Does<Configuration>(config => 

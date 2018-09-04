@@ -6,8 +6,9 @@ Task("Publish:MsBuild")
     .Does<Configuration>(config => 
 {
     foreach(var webProject in config.Solution.WebProjects) {
-        var projectArtifactDirectory = $"{config.Artifacts.GetRootFor(ArtifactTypeOption.WebDeploy)}/{webProject.AssemblyName}";
-        var artifactZipName = $"{webProject.AssemblyName}.zip";
+        var assemblyName = config.Solution.GetProjectName(webProject);
+        var projectArtifactDirectory = $"{config.Artifacts.GetRootFor(ArtifactTypeOption.WebDeploy)}/{assemblyName}";
+        var artifactZipName = $"{assemblyName}.zip";
         var artifactZipFullPath = $"{projectArtifactDirectory}/{artifactZipName}";
 
         MSBuild(webProject.ProjectFilePath, c => c
@@ -21,6 +22,6 @@ Task("Publish:MsBuild")
             .WithProperty("AutoParameterizationWebConfigConnectionStrings", "false")
             .WithProperty("PackageLocation", artifactZipFullPath)
         );
-        config.Artifacts.Add(ArtifactTypeOption.WebDeploy, webProject.AssemblyName, $"{projectArtifactDirectory}");
+        config.Artifacts.Add(ArtifactTypeOption.WebDeploy, assemblyName, $"{projectArtifactDirectory}");
     }
 });

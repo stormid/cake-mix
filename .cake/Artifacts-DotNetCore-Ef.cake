@@ -87,10 +87,11 @@ Task("Artifacts:DotNetCore:Ef:Migration-Script")
 
     Information("Generating scripts for {0} projects", efProjects.Count());
     foreach(var project in efProjects) {
+        var assemblyName = config.Solution.GetProjectName(project);
         var workingDirectory = project.ProjectFilePath.GetDirectory();
         var availableDbContexts = GetAllDbContexts(workingDirectory, config.Solution.BuildConfiguration).ToList();
 
-        Information("Generating scripts for {0} containing {1} contexts", project.AssemblyName, availableDbContexts.Count);
+        Information("Generating scripts for {0} containing {1} contexts", assemblyName, availableDbContexts.Count);
         foreach(var dbContext in availableDbContexts) 
         {
             Information("Generating Sql Script for {0}", dbContext.SafeName);

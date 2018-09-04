@@ -11,14 +11,15 @@ Task("Test:NUnit")
     CreateDirectory($"{config.Artifacts.Root}/test-results");
 
     foreach(var testProject in config.Solution.TestProjects) {
-        var testAssembly = $"{testProject.OutputPaths.First()}/{testProject.AssemblyName}.dll";
+        var assemblyName = config.Solution.GetProjectName(testProject);
+        var testAssembly = $"{testProject.OutputPaths.First()}/{assemblyName}.dll";
         var settings = new NUnit3Settings() {
             NoHeader = true,
             Configuration = config.Solution.BuildConfiguration,
             Results = new[] {
-                new NUnit3Result { FileName = $"{config.Artifacts.Root}/test-results/{testProject.AssemblyName}.xml" }
+                new NUnit3Result { FileName = $"{config.Artifacts.Root}/test-results/{assemblyName}.xml" }
             },
-            OutputFile = $"{config.Artifacts.Root}/test-results/{testProject.AssemblyName}.log",
+            OutputFile = $"{config.Artifacts.Root}/test-results/{assemblyName}.log",
         };
 
         NUnit3(testAssembly, settings);
