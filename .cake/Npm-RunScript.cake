@@ -1,16 +1,46 @@
-#addin "Cake.Npm"
-#addin "Cake.Gulp"
+#addin "nuget:?package=Cake.Npm&version=0.15.0"
 
-Task("Npm").IsDependentOn("Npm:Install").IsDependentOn("Npm:Build");
+public partial class Configuration 
+{
+    public Configuration RunNpmScript(string scriptName, string workingDirectory = "./")
+    {
+        Npm = new NpmConfiguration(context, scriptName, workingDirectory);
+        return this;
+    }
+
+    public NpmConfiguration Npm { get; private set; }
+}
+
+public class NpmConfiguration
+{
+    public string WorkingDirectory { get; } = "./";
+    public string ScriptName { get; } = "ci";
+
+    private readonly ICakeContext cakeContext;
+
+    public NpmConfiguration(ICakeContext cakeContext, string scriptName, string workingDirectory)
+    {
+        this.cakeContext = cakeContext;
+        ScriptName = scriptName;
+        WorkingDirectory = workingDirectory ?? "./";
+    }
+
+    public bool CanExecuteNpm {
+        get {
+            cakeContext.Information($"{WorkingDirectory.TrimEnd('/')}/package.json");
+            return cakeContext.FileExists($"{WorkingDirectory.TrimEnd('/')}/package.json");
+        }
+    }
+}
+
+Task("Npm").IsDependeeOf("Restore").IsDependentOn("Npm:Install").IsDependentOn("Npm:Build");
 
 Task("Npm:Install")
-    .IsDependeeOf("Restore")
+    .WithCriteria<Configuration>((ctx, config) => config.Npm.CanExecuteNpm)
     .Does<Configuration>(config => 
 {
-    var npmWorkingDirectory = config.Items["NpmWorkingDirectory"];
-
     var settings = new NpmInstallSettings();
-    settings.WorkingDirectory = npmWorkingDirectory;
+    settings.WorkingDirectory = config.Npm.WorkingDirectory;
     settings.LogLevel = NpmLogLevel.Silent;
     settings.RedirectStandardError = false;
     settings.RedirectStandardOutput = false;
@@ -19,14 +49,14 @@ Task("Npm:Install")
 
 Task("Npm:Build")
     .IsDependentOn("Npm:Install")
+    .WithCriteria<Configuration>((ctx, config) => config.Npm.CanExecuteNpm)
     .Does<Configuration>(config => 
 {
-    var npmWorkingDirectory = config.Items["NpmWorkingDirectory"];
-    var settings = new NpmScriptSettings();
-    settings.WorkingDirectory = npmWorkingDirectory;
+    var settings = new NpmRunScriptSettings();
+    settings.WorkingDirectory = config.Npm.WorkingDirectory;
     settings.LogLevel = NpmLogLevel.Silent;
     settings.RedirectStandardError = false;
     settings.RedirectStandardOutput = false;
-    settings.ScriptName = NpmRunScriptName;
+    settings.ScriptName = config.Npm.ScriptName;
     NpmRunScript(settings);
 });
