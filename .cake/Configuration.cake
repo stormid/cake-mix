@@ -35,7 +35,7 @@ Task("Artifacts:List")
 
 /* ************************************* */    
 
-public class Configuration {
+public partial class Configuration {
     public static Configuration Create(ISetupContext context) {
         var config = new Configuration(context, _solutionFilePathPattern, _defaultBuildConfiguration);
         config.Log(context.Log);
@@ -78,8 +78,11 @@ public class Configuration {
 
     public ArtifactsParameters Artifacts { get; }
 
+    private readonly ICakeContext context;
+
     private Configuration(ISetupContext context, string solutionFilePathPattern = "*.sln", string defaultBuildConfiguration = "Release", DirectoryPath artifactsRootPath = null)
     {
+        this.context = context;
         var solutionPath = context.GetFiles(solutionFilePathPattern).FirstOrDefault();
         
         if(solutionPath == null || !context.FileExists(solutionPath)) 
