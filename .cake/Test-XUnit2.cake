@@ -10,10 +10,11 @@ Task("Test:XUnit2")
     CreateDirectory($"{config.Artifacts.Root}/test-results");
 
     foreach(var testProject in config.Solution.TestProjects) {
-        var testAssembly = $"{testProject.OutputPaths.First()}/{testProject.AssemblyName}.dll";
+        var assemblyName = config.Solution.GetProjectName(testProject);
+        var testAssembly = $"{testProject.OutputPaths.First()}/{assemblyName}.dll";
         var settings = new XUnit2Settings {
             XmlReport = true,
-            ReportName = testProject.AssemblyName,
+            ReportName = assemblyName,
             OutputDirectory = $"{config.Artifacts.Root}/test-results",
         };
         

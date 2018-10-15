@@ -7,9 +7,10 @@ Task("Test:DotNetCore")
     .Does<Configuration>(config => 
 {        
     foreach(var testProject in config.Solution.TestProjects) {
+        var assemblyName = config.Solution.GetProjectName(testProject);
         var settings = new DotNetCoreTestSettings() {
             Configuration = config.Solution.BuildConfiguration,
-            Logger = $"trx;LogFileName={config.Artifacts.Root}/test-results/{testProject.AssemblyName}.xml",
+            Logger = $"trx;LogFileName={config.Artifacts.Root}/test-results/{assemblyName}.xml",
             NoBuild = true,
             NoRestore = true
         };

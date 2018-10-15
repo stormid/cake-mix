@@ -6,9 +6,10 @@ Task("Publish:Zip:DotNetCore")
     .Does<Configuration>(config => 
 {
     foreach(var webProject in config.Solution.WebProjects) {
+        var assemblyName = config.Solution.GetProjectName(webProject);
         var projectArtifactDirectory = config.Artifacts.GetRootFor(ArtifactTypeOption.Zip);
-        var publishDirectory = $"{projectArtifactDirectory}/build/{webProject.AssemblyName}/";
-        var artifactZipName = $"{webProject.AssemblyName}.zip";
+        var publishDirectory = $"{projectArtifactDirectory}/build/{assemblyName}/";
+        var artifactZipName = $"{assemblyName}.zip";
         var artifactZipFullPath = $"{projectArtifactDirectory}/{artifactZipName}";
 
         EnsureDirectoryExists(publishDirectory);

@@ -37,40 +37,36 @@ Task("Artifacts:List")
 
 public partial class Configuration {
     public static Configuration Create(ISetupContext context) {
-        var config = new Configuration(context, _solutionFilePathPattern, _defaultBuildConfiguration);
+        var config = new Configuration(context, _solutionFilePathPattern);
         config.Log(context.Log);
         return config;
     }
 
     public static Configuration Create(ISetupContext context, Action<Configuration> configure) {
-        var config = new Configuration(context, _solutionFilePathPattern, _defaultBuildConfiguration);
+        var config = new Configuration(context, _solutionFilePathPattern);
         configure(config);
         config.Log(context.Log);
         return config;
     }
 
-    public static Configuration Create(ISetupContext context, Action<Configuration> configure = null, string solutionFilePathPattern = _solutionFilePathPattern, string defaultBuildConfiguration = _defaultBuildConfiguration) {
-        var config = new Configuration(context, solutionFilePathPattern, _defaultBuildConfiguration);
-        configure?.Invoke(config);
-        config.Log(context.Log);
-        return config;
-    }
-
     public static Configuration Create(ISetupContext context, string solutionFilePathPattern = _solutionFilePathPattern, Action<Configuration> configure = null) {
-        var config = new Configuration(context, solutionFilePathPattern, _defaultBuildConfiguration);
+        var config = new Configuration(context, solutionFilePathPattern);
         configure?.Invoke(config);
         config.Log(context.Log);
         return config;
     }
 
-    public static Configuration Create(ISetupContext context, string solutionFilePathPattern = _solutionFilePathPattern, string defaultBuildConfiguration = _defaultBuildConfiguration, Action<Configuration> configure = null) {
-        var config = new Configuration(context, solutionFilePathPattern, defaultBuildConfiguration);
-        configure?.Invoke(config);
-        config.Log(context.Log);
-        return config;
-    }
+    // public static Configuration Create(ISetupContext context, string solutionFilePathPattern, string defaultBuildConfiguration) {
+    //     var config = new Configuration(context, solutionFilePathPattern, defaultBuildConfiguration);
+    //     config.Log(context.Log);
+    //     return config;
+    // }
 
-    public Dictionary<string, string> Items { get; } = new Dictionary<string, string>();
+    // public static Configuration Create(ISetupContext context, string solutionFilePathPattern = _solutionFilePathPattern) {
+    //     var config = new Configuration(context, solutionFilePathPattern, context.Argument("Configuration", _defaultBuildConfiguration));
+    //     config.Log(context.Log);
+    //     return config;
+    // }
 
     public BuildVersion Version { get; }
 
@@ -82,18 +78,17 @@ public partial class Configuration {
 
     private Configuration(ISetupContext context, string solutionFilePathPattern = "*.sln", string defaultBuildConfiguration = "Release", DirectoryPath artifactsRootPath = null)
     {
-        this.context = context;
-        var solutionPath = context.GetFiles(solutionFilePathPattern).FirstOrDefault();
-        
-        if(solutionPath == null || !context.FileExists(solutionPath)) 
-        {
-            throw new Exception("Cant continue without a valid solution file");
+        var solutionPath = context.GetFiles(solutionFilePathPattern).First();
+        if(!context.FileExists(solutionPath)) {
+            throw new Exception("Unable to find valid solution file");
         }
 
         var buildConfiguration = context.Argument("configuration", defaultBuildConfiguration);
 
         Solution = new SolutionParameters(context, solutionPath, buildConfiguration);
+        
         Version = BuildVersion.DetermineBuildVersion(context);
+        
         Artifacts = new ArtifactsParameters(context, artifactsRootPath ?? context.Directory("artifacts"));
     }
 
@@ -117,7 +112,7 @@ public struct Artifact {
     public string Name { get; set; }
     public FilePath Path { get; set; }
 
-    public Artifact(ArtifactTypeOption type, string name, FilePath path, string category = "none")
+    public Artifact(ArtifactTypeOption type, string name, FilePath path, string category = "N/A")
     {
         Type = type;
         Name = name;
@@ -159,13 +154,11 @@ public class SolutionParameters {
     public FilePath Path { get; }
 
     public string BuildConfiguration { get; }
-
     public IEnumerable<CustomProjectParserResult> Projects { get; } = Enumerable.Empty<CustomProjectParserResult>();
     public IEnumerable<CustomProjectParserResult> WebProjects => Projects.Where(IsWebProject);
 
     public IEnumerable<CustomProjectParserResult> TestProjects => Projects.Where(IsCliTestProject);
     public IEnumerable<CustomProjectParserResult> NuGetProjects => Projects.Where(IsNuGetPackableProject);
-    public IEnumerable<CustomProjectParserResult> ConsoleProjects => Projects.Where(IsConsoleProject);
 
     public SolutionParameters(ICakeContext context, FilePath solutionPath, string buildConfiguration) {
         this.context = context;
@@ -187,10 +180,6 @@ public class SolutionParameters {
         p => !string.IsNullOrWhiteSpace(p?.NetCore?.PackageId) && p.NetCore.IsPackable && !p.NetCore.IsWeb
     };
 
-    public ISet<Func<CustomProjectParserResult, bool>> ConsoleProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
-        p => p?.OutputType?.Equals("Exe") ?? false
-    };
-
     public SolutionParameters IncludeAsWebProject(Func<CustomProjectParserResult, bool> includeFunc) {
         WebProjectResolvers.Add(includeFunc);
         return this;
@@ -206,11 +195,6 @@ public class SolutionParameters {
         return this;
     }
 
-    public SolutionParameters IncludeAsConsoleProject(Func<CustomProjectParserResult, bool> includeFunc) {
-        ConsoleProjectResolvers.Add(includeFunc);
-        return this;
-    }    
-
     private bool IsWebProject(CustomProjectParserResult project) {
         return WebProjectResolvers.Any(resolver => resolver(project));
     }
@@ -218,17 +202,20 @@ public class SolutionParameters {
     private bool IsCliTestProject(CustomProjectParserResult project) {
         return TestProjectResolvers.Any(resolver => resolver(project));
     }
-    
+
     private bool IsNuGetPackableProject(CustomProjectParserResult project) {
         return NuGetProjectResolvers.Any(resolver => resolver(project));
     }
 
-    private bool IsConsoleProject(CustomProjectParserResult project) {
-        return ConsoleProjectResolvers.Any(resolver => resolver(project));
+    public string GetProjectName(CustomProjectParserResult project) {
+        if(project == null) {
+            throw new ArgumentNullException(nameof(project));
+        }
+        return string.IsNullOrWhiteSpace(project.AssemblyName) ? project.ProjectFilePath.GetFilenameWithoutExtension().ToString() : project.AssemblyName;
     }
 
     public void Log(ICakeLog logger) {
-        logger.Information("------\nProjects - Total: {0}, Web: {1}, Test: {2}, Library: {3}, Console: {4}\n------", Projects.Count(), WebProjects.Count(), TestProjects.Count(), NuGetProjects.Count(), ConsoleProjects.Count());
+        logger.Information("------\nProjects - Total: {0}, Web: {1}, Test: {2}, Library: {3}\n------", Projects.Count(), WebProjects.Count(), TestProjects.Count(), NuGetProjects.Count());
     }
 }
 
