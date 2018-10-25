@@ -56,18 +56,6 @@ public partial class Configuration {
         return config;
     }
 
-    // public static Configuration Create(ISetupContext context, string solutionFilePathPattern, string defaultBuildConfiguration) {
-    //     var config = new Configuration(context, solutionFilePathPattern, defaultBuildConfiguration);
-    //     config.Log(context.Log);
-    //     return config;
-    // }
-
-    // public static Configuration Create(ISetupContext context, string solutionFilePathPattern = _solutionFilePathPattern) {
-    //     var config = new Configuration(context, solutionFilePathPattern, context.Argument("Configuration", _defaultBuildConfiguration));
-    //     config.Log(context.Log);
-    //     return config;
-    // }
-
     public BuildVersion Version { get; }
 
     public SolutionParameters Solution { get; }
@@ -78,6 +66,7 @@ public partial class Configuration {
 
     private Configuration(ISetupContext context, string solutionFilePathPattern = "*.sln", string defaultBuildConfiguration = "Release", DirectoryPath artifactsRootPath = null)
     {
+        this.context = context;
         var solutionPath = context.GetFiles(solutionFilePathPattern).First();
         if(!context.FileExists(solutionPath)) {
             throw new Exception("Unable to find valid solution file");
@@ -156,9 +145,9 @@ public class SolutionParameters {
     public string BuildConfiguration { get; }
     public IEnumerable<CustomProjectParserResult> Projects { get; } = Enumerable.Empty<CustomProjectParserResult>();
     public IEnumerable<CustomProjectParserResult> WebProjects => Projects.Where(IsWebProject);
-
     public IEnumerable<CustomProjectParserResult> TestProjects => Projects.Where(IsCliTestProject);
     public IEnumerable<CustomProjectParserResult> NuGetProjects => Projects.Where(IsNuGetPackableProject);
+    public IEnumerable<CustomProjectParserResult> LibraryProjects => Projects.Where(IsLibraryProject);
 
     public SolutionParameters(ICakeContext context, FilePath solutionPath, string buildConfiguration) {
         this.context = context;
@@ -168,16 +157,20 @@ public class SolutionParameters {
         Projects = Solution.GetProjects().Select(p => context.ParseProject(p.Path, buildConfiguration)).ToList();
     }
 
-    public ISet<Func<CustomProjectParserResult, bool>> WebProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
+    private ISet<Func<CustomProjectParserResult, bool>> WebProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
         p => p.IsWebApplication()
     };
 
-    public ISet<Func<CustomProjectParserResult, bool>> TestProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
+    private ISet<Func<CustomProjectParserResult, bool>> TestProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
         p => p.IsDotNetCliTestProject()
     };
 
-    public ISet<Func<CustomProjectParserResult, bool>> NuGetProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
+    private ISet<Func<CustomProjectParserResult, bool>> NuGetProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
         p => !string.IsNullOrWhiteSpace(p?.NetCore?.PackageId) && p.NetCore.IsPackable && !p.NetCore.IsWeb
+    };
+
+    private ISet<Func<CustomProjectParserResult, bool>> LibraryProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
+        p => p.IsLibrary()
     };
 
     public SolutionParameters IncludeAsWebProject(Func<CustomProjectParserResult, bool> includeFunc) {
@@ -195,6 +188,11 @@ public class SolutionParameters {
         return this;
     }
 
+    public SolutionParameters IncludeAsLibraryProject(Func<CustomProjectParserResult, bool> includeFunc) {
+        LibraryProjectResolvers.Add(includeFunc);
+        return this;
+    }
+
     private bool IsWebProject(CustomProjectParserResult project) {
         return WebProjectResolvers.Any(resolver => resolver(project));
     }
@@ -207,6 +205,10 @@ public class SolutionParameters {
         return NuGetProjectResolvers.Any(resolver => resolver(project));
     }
 
+    private bool IsLibraryProject(CustomProjectParserResult project) {
+        return LibraryProjectResolvers.Any(resolver => resolver(project));
+    }
+
     public string GetProjectName(CustomProjectParserResult project) {
         if(project == null) {
             throw new ArgumentNullException(nameof(project));
@@ -215,7 +217,7 @@ public class SolutionParameters {
     }
 
     public void Log(ICakeLog logger) {
-        logger.Information("------\nProjects - Total: {0}, Web: {1}, Test: {2}, Library: {3}\n------", Projects.Count(), WebProjects.Count(), TestProjects.Count(), NuGetProjects.Count());
+        logger.Information("------\nProjects - Total: {0}, Web: {1}, Test: {2}, NuGet: {3}, Library: {4}\n------", Projects.Count(), WebProjects.Count(), TestProjects.Count(), NuGetProjects.Count(), LibraryProjects.Count());
     }
 }
 
