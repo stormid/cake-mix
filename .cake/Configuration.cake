@@ -1,4 +1,4 @@
-#addin "Cake.Incubator"
+#addin "Cake.Incubator&version=3.1.0"
 #load "Configuration-Version.cake"
 
 const string _solutionFilePathPattern = "*.sln";
