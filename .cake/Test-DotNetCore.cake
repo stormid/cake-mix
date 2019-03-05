@@ -26,7 +26,7 @@ Task("CI:VSTS:VSTest:PublishTestResults")
     .Does<Configuration>(config => 
 {
     Information("Publishing Test results from {0}", config.Artifacts.Root);
-    var testResults = GetFiles($"{config.Artifacts.Root}/test-results/**/*.xml").Select(file => MakeAbsolute(file).ToString()).ToArray();
+    var testResults = GetFiles($"{config.Artifacts.Root}/test-results/**/*.xml").Select(file => MakeAbsolute(file)).ToArray();
     if(testResults.Any()) 
     {
         TFBuild.Commands.PublishTestResults(new TFBuildPublishTestResultsData() {
