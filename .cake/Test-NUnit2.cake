@@ -29,7 +29,7 @@ Task("CI:VSTS:NUnit:PublishTestResults")
     .Does<Configuration>(config => 
 {
     Information("Publishing Test results from {0}", config.Artifacts.Root);
-    var testResults = GetFiles($"{config.Artifacts.Root}/test-results/**/*.xml").Select(file => MakeAbsolute(file).ToString()).ToArray();
+    var testResults = GetFiles($"{config.Artifacts.Root}/test-results/**/*.xml").Select(file => MakeAbsolute(file)).ToArray();
     TFBuild.Commands.PublishTestResults(new TFBuildPublishTestResultsData() {
         Configuration = config.Solution.BuildConfiguration,
         MergeTestResults = true,
