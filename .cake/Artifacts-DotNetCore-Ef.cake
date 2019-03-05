@@ -1,5 +1,5 @@
 #load "Configuration.cake"
-#addin nuget:?package=Newtonsoft.Json
+#addin nuget:?package=Newtonsoft.Json&version=12.0.1
 using Newtonsoft.Json;
 
 public class EfMigration 
