@@ -91,31 +91,34 @@ Task("Artifacts:DotNetCore:Ef:Migration-Script")
         var workingDirectory = project.ProjectFilePath.GetDirectory();
         var availableDbContexts = GetAllDbContexts(workingDirectory, config.Solution.BuildConfiguration).ToList();
 
-        Information("Generating scripts for {0} containing {1} contexts", assemblyName, availableDbContexts.Count);
-        foreach(var dbContext in availableDbContexts) 
+        if(availableDbContexts.Any())
         {
-            Information("Generating Sql Script for {0}", dbContext.SafeName);
-            var migrations = GetMigrationsForContext(dbContext.SafeName, workingDirectory, config.Solution.BuildConfiguration);
-            
-            var sqlScript = MakeAbsolute(File($"{config.Artifacts.Root}/sql/{dbContext.SafeName}.sql"));
-            if(FileExists(sqlScript)) {
-                DeleteFile(sqlScript);
-            }
-
-            var settings = new ProcessSettings() 
-            { 
-                WorkingDirectory = workingDirectory
-            };
-
-            settings.Arguments = string.Format("ef migrations script -i -o {0} --configuration {1} --context {2}", sqlScript, config.Solution.BuildConfiguration, dbContext.SafeName);
-
-            using(var process = StartAndReturnProcess("dotnet", settings))
+            Information("Generating scripts for {0} containing {1} contexts", assemblyName, availableDbContexts.Count);
+            foreach(var dbContext in availableDbContexts) 
             {
-                process.WaitForExit();
-                Verbose("Exit code: {0}", process.GetExitCode());
-            }
+                Information("Generating Sql Script for {0}", dbContext.SafeName);
+                var migrations = GetMigrationsForContext(dbContext.SafeName, workingDirectory, config.Solution.BuildConfiguration);
+                
+                var sqlScript = MakeAbsolute(File($"{config.Artifacts.Root}/sql/{dbContext.SafeName}.sql"));
+                if(FileExists(sqlScript)) {
+                    DeleteFile(sqlScript);
+                }
 
-            config.Artifacts.Add(ArtifactTypeOption.Other, sqlScript.GetFilename().ToString(), sqlScript);
+                var settings = new ProcessSettings() 
+                { 
+                    WorkingDirectory = workingDirectory
+                };
+
+                settings.Arguments = string.Format("ef migrations script -i -o {0} --configuration {1} --context {2}", sqlScript, config.Solution.BuildConfiguration, dbContext.SafeName);
+
+                using(var process = StartAndReturnProcess("dotnet", settings))
+                {
+                    process.WaitForExit();
+                    Verbose("Exit code: {0}", process.GetExitCode());
+                }
+
+                config.Artifacts.Add(ArtifactTypeOption.Other, sqlScript.GetFilename().ToString(), sqlScript);
+            }
         }
     }
 
