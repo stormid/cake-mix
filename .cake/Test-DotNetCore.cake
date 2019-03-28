@@ -7,11 +7,11 @@ Task("Test:DotNetCore")
     .Does<Configuration>(config => 
 {
     CreateDirectory($"{config.Artifacts.Root}/test-results");
+    var testResultsRoot = $"{config.Artifacts.Root}/test-results";
 
     var shouldFail = false;
     foreach(var testProject in config.Solution.TestProjects.Where(p => p.IsDotNetCliTestProject())) {
         var assemblyName = config.Solution.GetProjectName(testProject);
-        var testResultsRoot = $"{config.Artifacts.Root}/test-results";
         var testResultsXml = $"{testResultsRoot}/{assemblyName}.xml";
         try 
         {
@@ -30,11 +30,11 @@ Task("Test:DotNetCore")
         }
     }
 
-    Information("Publishing Test results from {0}", config.Artifacts.Root);
-    var testResults = GetFiles($"{config.Artifacts.Root}/test-results/**/*.xml").Select(file => MakeAbsolute(file)).ToArray();
+    Information("Publishing Test results from {0}", testResultsRoot);
+    var testResults = GetFiles($"{testResultsRoot}/**/*.xml").ToArray();
     if(testResults.Any()) 
     {
-        if((BuildSystem.IsRunningOnVSTS || TFBuild.IsRunningOnTFS)) 
+        if(BuildSystem.IsRunningOnVSTS || TFBuild.IsRunningOnTFS) 
         {
             TFBuild.Commands.PublishTestResults(new TFBuildPublishTestResultsData() {
                 Configuration = config.Solution.BuildConfiguration,
