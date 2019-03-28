@@ -9,38 +9,44 @@ Task("Test:XUnit2")
 {
     CreateDirectory($"{config.Artifacts.Root}/test-results");
 
+    var shouldFail = false;
     foreach(var testProject in config.Solution.TestProjects) {
         var assemblyName = config.Solution.GetProjectName(testProject);
-        var testAssembly = $"{testProject.OutputPaths.First()}/{assemblyName}.dll";
-        var settings = new XUnit2Settings {
-            XmlReport = true,
-            ReportName = assemblyName,
-            OutputDirectory = $"{config.Artifacts.Root}/test-results",
-        };
-        
-        XUnit2(testAssembly, settings);
+        var testResults = $"{config.Artifacts.Root}/test-results";
+        var testResultsXml = $"{testResults}/{assemblyName}.xml";
+        try 
+        {
+            var settings = new XUnit2Settings {
+                XmlReport = true,
+                ReportName = assemblyName,
+                OutputDirectory = $"{testResults}",
+            };
+            
+            XUnit2(testAssembly, settings);
+        } 
+        catch
+        {
+            shouldFail = true;
+        }
     }
-});
 
-Task("CI:VSTS:XUnit:PublishTestResults")
-    .WithCriteria<Configuration>((ctx, config) => BuildSystem.IsRunningOnVSTS || TFBuild.IsRunningOnTFS)
-    .IsDependentOn("Test")
-    .IsDependeeOf("Publish")
-    .Does<Configuration>(config => 
-{
     Information("Publishing Test results from {0}", config.Artifacts.Root);
     var testResults = GetFiles($"{config.Artifacts.Root}/test-results/**/*.xml").Select(file => MakeAbsolute(file)).ToArray();
     if(testResults.Any()) 
     {
-        TFBuild.Commands.PublishTestResults(new TFBuildPublishTestResultsData() {
-            Configuration = config.Solution.BuildConfiguration,
-            MergeTestResults = true,
-            TestResultsFiles = testResults,
-            TestRunner = TFTestRunnerType.XUnit
-        });    
+        if((BuildSystem.IsRunningOnVSTS || TFBuild.IsRunningOnTFS)) 
+        {
+            TFBuild.Commands.PublishTestResults(new TFBuildPublishTestResultsData() {
+                Configuration = config.Solution.BuildConfiguration,
+                MergeTestResults = true,
+                TestResultsFiles = testResults,
+                TestRunner = TFTestRunnerType.VSTest
+            });    
+        }
     }
-    else
+
+    if(shouldFail)
     {
-        Warning("No test results to publish");
+        throw new Exception("Tests have failed");
     }
 });
