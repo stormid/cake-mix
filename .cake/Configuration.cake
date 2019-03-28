@@ -1,4 +1,4 @@
-#addin "Cake.Incubator&version=3.1.0"
+#addin "Cake.Incubator&version=4.0.2"
 #load "Configuration-Version.cake"
 
 const string _solutionFilePathPattern = "*.sln";
@@ -56,6 +56,8 @@ public partial class Configuration {
         return config;
     }
 
+    public Dictionary<string, object> TaskParameters { get; } = new Dictionary<string, object>();
+
     public BuildVersion Version { get; }
 
     public SolutionParameters Solution { get; }
@@ -110,7 +112,7 @@ public struct Artifact {
     }
 
     public override string ToString() {
-        return $"{Name} ({Type}/{Category}) - {Path}";
+        return $"{Name} ({Type}/{Category}) - {Path.FullPath}";
     }
 }
 
@@ -133,7 +135,7 @@ public class ArtifactsParameters : List<Artifact> {
     }
 
     public void Add(ArtifactTypeOption type, string name, FilePath path) {
-        Add(new Artifact(type, name, path));
+        Add(new Artifact(type, name, context.MakeAbsolute(path)));
     }
 }
 
@@ -158,11 +160,12 @@ public class SolutionParameters {
     }
 
     private ISet<Func<CustomProjectParserResult, bool>> WebProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
-        p => p.IsWebApplication()
+        p => p.IsWebApplication(),
+        p => p.HasPackage("Microsoft.NET.Sdk.Functions")
     };
 
     private ISet<Func<CustomProjectParserResult, bool>> TestProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
-        p => p.IsDotNetCliTestProject()
+        p => p.IsTestProject()
     };
 
     private ISet<Func<CustomProjectParserResult, bool>> NuGetProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {

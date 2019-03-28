@@ -7,7 +7,7 @@ Task("CI:VSTS:UploadArtifacts")
     .Does<Configuration>(config => 
 {
     Information("Uploading artifacts from {0}", config.Artifacts.Root);
-    TFBuild.Commands.UploadArtifact("artifacts", config.Artifacts.Root.ToString(), "artifacts");    
+    TFBuild.Commands.UploadArtifact("artifacts", config.Artifacts.Root.ToString(), "artifacts");
 });
 
 Task("CI:VSTS:UpdateBuildNumber")

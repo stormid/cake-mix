@@ -27,7 +27,6 @@ public class NpmConfiguration
 
     public bool CanExecuteNpm {
         get {
-            cakeContext.Information($"{WorkingDirectory.TrimEnd('/')}/package.json");
             return cakeContext.FileExists($"{WorkingDirectory.TrimEnd('/')}/package.json");
         }
     }

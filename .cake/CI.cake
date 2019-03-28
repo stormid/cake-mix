@@ -1,4 +1,4 @@
-#load "CI-VSTS.cake"
+#load "CI-Azure-DevOps.cake"
 #load "CI-AppVeyor.cake"
 
 Task("CI")
