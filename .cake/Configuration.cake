@@ -1,4 +1,4 @@
-#addin "Cake.Incubator&version=3.1.0"
+#addin "Cake.Incubator&version=4.0.2"
 #load "Configuration-Version.cake"
 
 const string _solutionFilePathPattern = "*.sln";
@@ -158,11 +158,12 @@ public class SolutionParameters {
     }
 
     private ISet<Func<CustomProjectParserResult, bool>> WebProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
-        p => p.IsWebApplication()
+        p => p.IsWebApplication(),
+        p => p.HasPackage("Microsoft.NET.Sdk.Functions")
     };
 
     private ISet<Func<CustomProjectParserResult, bool>> TestProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {
-        p => p.IsDotNetCliTestProject()
+        p => p.IsTestProject()
     };
 
     private ISet<Func<CustomProjectParserResult, bool>> NuGetProjectResolvers { get; } = new HashSet<Func<CustomProjectParserResult, bool>>() {

@@ -4,22 +4,22 @@
 Task("Test:NUnit")    
     .IsDependentOn("Build")
     .IsDependeeOf("Test")
-    .WithCriteria<Configuration>((ctx, config) => config.Solution.TestProjects.Any())
+    .WithCriteria<Configuration>((ctx, config) => config.Solution.TestProjects.Any(p => p.IsNUnitTestProject()))
     .Does<Configuration>(config => 
 {
     CreateDirectory($"{config.Artifacts.Root}/test-results");
 
     var shouldFail = false;
-    foreach(var testProject in config.Solution.TestProjects) {
+    foreach(var testProject in config.Solution.TestProjects.Where(p => p.IsNUnitTestProject())) {
         var assemblyName = config.Solution.GetProjectName(testProject);
-        var testResults = $"{config.Artifacts.Root}/test-results";
-        var testResultsXml = $"{testResults}/{assemblyName}.xml";
+        var testResultsRoot = $"{config.Artifacts.Root}/test-results";
+        var testResultsXml = $"{testResultsRoot}/{assemblyName}.xml";
         try 
         {
             var settings = new NUnitSettings() {
                 NoLogo = true,
                 ResultsFile = testResultsXml,
-                OutputFile = $"{testResult}/{assemblyName}.log",
+                OutputFile = $"{testResultsRoot}/{assemblyName}.log",
             };
 
             NUnit(testAssembly, settings);

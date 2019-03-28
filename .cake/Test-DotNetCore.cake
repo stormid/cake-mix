@@ -3,16 +3,16 @@
 Task("Test:DotNetCore")
     .IsDependentOn("Build")
     .IsDependeeOf("Test")
-    .WithCriteria<Configuration>((ctx, config) => config.Solution.TestProjects.Any())
+    .WithCriteria<Configuration>((ctx, config) => config.Solution.TestProjects.Any(p => p.IsDotNetCliTestProject()))
     .Does<Configuration>(config => 
 {
     CreateDirectory($"{config.Artifacts.Root}/test-results");
 
     var shouldFail = false;
-    foreach(var testProject in config.Solution.TestProjects) {
+    foreach(var testProject in config.Solution.TestProjects.Where(p => p.IsDotNetCliTestProject())) {
         var assemblyName = config.Solution.GetProjectName(testProject);
-        var testResults = $"{config.Artifacts.Root}/test-results";
-        var testResultsXml = $"{testResults}/{assemblyName}.xml";
+        var testResultsRoot = $"{config.Artifacts.Root}/test-results";
+        var testResultsXml = $"{testResultsRoot}/{assemblyName}.xml";
         try 
         {
             var settings = new DotNetCoreTestSettings() {
