@@ -80,8 +80,6 @@ IEnumerable<EfMigration> GetMigrationsForContext(string dbContext, DirectoryPath
 
 public static Configuration IncludeAsEfDbContext(this Configuration configuration, Func<CustomProjectParserResult, bool> includeAsEFDbContext)
 {
-    configuration.Logger.Information("Including EF DbContexts");
-
     var projects = new HashSet<CustomProjectParserResult>();
     if(configuration.TaskParameters.TryGetValue("Artifacts:DotNetCore:Ef:Migration-Script", out object value) && value is HashSet<CustomProjectParserResult>)
     {
