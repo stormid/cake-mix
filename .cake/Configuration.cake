@@ -83,6 +83,8 @@ public partial class Configuration {
         Artifacts = new ArtifactsParameters(context, artifactsRootPath ?? context.Directory("artifacts"));
     }
 
+    public ICakeLog Logger => context.Log;
+
     public void Log(ICakeLog logger) 
     {
         Solution.Log(logger);
