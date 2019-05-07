@@ -78,12 +78,52 @@ IEnumerable<EfMigration> GetMigrationsForContext(string dbContext, DirectoryPath
     return list;
 }
 
+public static Configuration IncludeAsEfDbContext(this Configuration configuration, Func<CustomProjectParserResult, bool> includeAsEFDbContext)
+{
+    configuration.Logger.Information("Including EF DbContexts");
+
+    var projects = new HashSet<CustomProjectParserResult>();
+    if(configuration.TaskParameters.TryGetValue("Artifacts:DotNetCore:Ef:Migration-Script", out object value) && value is HashSet<CustomProjectParserResult>)
+    {
+        projects = value as HashSet<CustomProjectParserResult>;
+    }
+    else
+    {
+        configuration.TaskParameters.Add("Artifacts:DotNetCore:Ef:Migration-Script", projects);
+    }
+
+    var projectsToInclude = configuration.Solution.Projects.Where(includeAsEFDbContext).ToList();
+
+    if(projectsToInclude != null && projectsToInclude.Any())
+    {
+        projects.UnionWith(projectsToInclude);
+    }
+
+    return configuration;
+}
+
+public static bool HasCustomEfDbContextTargets(this Configuration configuration)
+{
+    var projectList = configuration.GetEfDbContextTargets();
+    return projectList?.Any() ?? false;
+}
+
+public static IEnumerable<CustomProjectParserResult> GetEfDbContextTargets(this Configuration configuration)
+{
+    var projects = new HashSet<CustomProjectParserResult>();
+    if(configuration.TaskParameters.TryGetValue("Artifacts:DotNetCore:Ef:Migration-Script", out object value) && value is HashSet<CustomProjectParserResult>)
+    {
+        projects = value as HashSet<CustomProjectParserResult>;
+    }    
+    return projects;
+}
+
 Task("Artifacts:DotNetCore:Ef:Migration-Script")
     .IsDependentOn("Build")
     .IsDependeeOf("Publish")
     .Does<Configuration>(config => 
 {
-    var efProjects = config.Solution.Projects.ToList();
+    var efProjects = (config.HasCustomEfDbContextTargets() ? config.GetEfDbContextTargets() : config.Solution.Projects).ToList();
 
     Information("Generating scripts for {0} projects", efProjects.Count());
     foreach(var project in efProjects) {
