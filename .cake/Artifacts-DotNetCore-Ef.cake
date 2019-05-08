@@ -25,7 +25,7 @@ IEnumerable<EfContext> GetAllDbContexts(DirectoryPath workingDirectory, string c
         RedirectStandardOutput = true
     };
 
-    settings.Arguments = string.Format("ef dbcontext list --configuration {0} --json", configuration);
+    settings.Arguments = string.Format("ef dbcontext list --configuration {0} --json --prefix-output", configuration);
     var list = Enumerable.Empty<EfContext>();
     
     using(var process = StartAndReturnProcess("dotnet", settings))
@@ -35,7 +35,7 @@ IEnumerable<EfContext> GetAllDbContexts(DirectoryPath workingDirectory, string c
         {
             try 
             {
-                var outputAsJson = string.Join(Environment.NewLine, process.GetStandardOutput());
+                var outputAsJson = string.Join(Environment.NewLine, process.GetStandardOutput().Where(l => l.StartsWith("data:")).Select(l => l.Replace("data:", "")));
                 list = JsonConvert.DeserializeObject<List<EfContext>>(outputAsJson);
                 Verbose("Found {0} Db contexts", list.Count());
             }
@@ -56,7 +56,7 @@ IEnumerable<EfMigration> GetMigrationsForContext(string dbContext, DirectoryPath
         RedirectStandardOutput = true
     };
 
-    settings.Arguments = string.Format("ef migrations list --configuration {0} --context {1} --json", configuration, dbContext);
+    settings.Arguments = string.Format("ef migrations list --configuration {0} --context {1} --json --prefix-output", configuration, dbContext);
 
     var list = Enumerable.Empty<EfMigration>();
     using(var process = StartAndReturnProcess("dotnet", settings))
@@ -66,7 +66,7 @@ IEnumerable<EfMigration> GetMigrationsForContext(string dbContext, DirectoryPath
         {
             try
             {
-                var outputAsJson = string.Join(Environment.NewLine, process.GetStandardOutput());
+                var outputAsJson = string.Join(Environment.NewLine, process.GetStandardOutput().Where(l => l.StartsWith("data:")).Select(l => l.Replace("data:", "")));
                 list = JsonConvert.DeserializeObject<List<EfMigration>>(outputAsJson);
             }
             catch(Exception exception)             
