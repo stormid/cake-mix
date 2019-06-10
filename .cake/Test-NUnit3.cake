@@ -40,7 +40,7 @@ Task("Test:NUnit")
     var testResults = GetFiles($"{config.Artifacts.Root}/test-results/**/*.xml").ToArray();
     if(testResults.Any()) 
     {
-        if((BuildSystem.IsRunningOnVSTS || TFBuild.IsRunningOnTFS)) 
+        if(BuildSystem.IsRunningOnAzurePipelinesHosted || TFBuild.IsRunningOnAzurePipelines) 
         {
             TFBuild.Commands.PublishTestResults(new TFBuildPublishTestResultsData() {
                 Configuration = config.Solution.BuildConfiguration,
