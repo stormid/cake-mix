@@ -1,4 +1,4 @@
-#tool "nuget:?package=NUnit.ConsoleRunner"
+#tool "nuget:?package=NUnit.ConsoleRunner&version=3.10.0"
 
 #load "Configuration.cake"
 
@@ -15,6 +15,8 @@ Task("Test:NUnit")
         var assemblyName = config.Solution.GetProjectName(testProject);
         var testResultsRoot = $"{config.Artifacts.Root}/test-results";
         var testResultsXml = $"{testResultsRoot}/{assemblyName}.xml";
+        var testAssembly = $"{testProject.OutputPaths.FirstOrDefault().ToString()}/{assemblyName}.dll";
+
         try 
         {
             var settings = new NUnit3Settings() {
@@ -38,7 +40,7 @@ Task("Test:NUnit")
     var testResults = GetFiles($"{config.Artifacts.Root}/test-results/**/*.xml").ToArray();
     if(testResults.Any()) 
     {
-        if((BuildSystem.IsRunningOnVSTS || TFBuild.IsRunningOnTFS)) 
+        if(BuildSystem.IsRunningOnAzurePipelinesHosted || TFBuild.IsRunningOnAzurePipelines) 
         {
             TFBuild.Commands.PublishTestResults(new TFBuildPublishTestResultsData() {
                 Configuration = config.Solution.BuildConfiguration,
