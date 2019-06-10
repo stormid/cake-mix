@@ -34,7 +34,7 @@ Task("Test:DotNetCore")
     var testResults = GetFiles($"{testResultsRoot}/**/*.xml").ToArray();
     if(testResults.Any()) 
     {
-        if(BuildSystem.IsRunningOnVSTS || TFBuild.IsRunningOnTFS) 
+        if(BuildSystem.IsRunningOnAzurePipelinesHosted || TFBuild.IsRunningOnAzurePipelines) 
         {
             TFBuild.Commands.PublishTestResults(new TFBuildPublishTestResultsData() {
                 Configuration = config.Solution.BuildConfiguration,
