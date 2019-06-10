@@ -15,6 +15,8 @@ Task("Test:NUnit")
         var assemblyName = config.Solution.GetProjectName(testProject);
         var testResultsRoot = $"{config.Artifacts.Root}/test-results";
         var testResultsXml = $"{testResultsRoot}/{assemblyName}.xml";
+        var testAssembly = $"{testProject.OutputPaths.FirstOrDefault().ToString()}/{assemblyName}.dll";
+
         try 
         {
             var settings = new NUnit3Settings() {
