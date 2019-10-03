@@ -18,8 +18,7 @@ Task("Publish:Zip:DotNetCore")
         {
             NoRestore = true,
             Configuration = config.Solution.BuildConfiguration,
-            OutputDirectory = publishDirectory,
-            Verbosity = DotNetCoreVerbosity.Minimal,
+            OutputDirectory = publishDirectory
         };
 
         settings.MSBuildSettings = new DotNetCoreMSBuildSettings();
