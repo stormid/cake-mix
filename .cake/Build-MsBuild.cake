@@ -8,7 +8,6 @@ Task("Build:MsBuild")
     MSBuild(config.Solution.Path.ToString(), c => c
         .SetConfiguration(config.Solution.BuildConfiguration)
         .SetVerbosity(Verbosity.Minimal)
-        .UseToolVersion(MSBuildToolVersion.VS2017)
         .WithWarningsAsError()
         .WithTarget("Build")
     );
