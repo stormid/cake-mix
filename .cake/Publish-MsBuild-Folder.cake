@@ -5,6 +5,8 @@ Task("Publish:MsBuild")
     .IsDependeeOf("Publish")
     .Does<Configuration>(config => 
 {
+    Information("MsBuild Tool Version: " + config.MsBuildToolVersion.ToString());
+
     foreach(var webProject in config.Solution.WebProjects) {
         var assemblyName = config.Solution.GetProjectName(webProject);
         var projectArtifactDirectory = $"{config.Artifacts.GetRootFor(ArtifactTypeOption.Zip)}/{assemblyName}";
@@ -14,7 +16,7 @@ Task("Publish:MsBuild")
         MSBuild(webProject.ProjectFilePath, c => c
             .SetConfiguration(config.Solution.BuildConfiguration)
             .SetVerbosity(Verbosity.Quiet)
-            .UseToolVersion(MSBuildToolVersion.VS2017)
+            .UseToolVersion(config.MsBuildToolVersion)
             .WithWarningsAsError()
             .WithTarget("Package")
             .WithProperty("DeployTarget", "PipelinePreDeployCopyAllFilesToOneFolder")
