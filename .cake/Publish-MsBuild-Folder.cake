@@ -1,11 +1,12 @@
 #load "Configuration.cake"
+#load "Configuration-MsBuild.cake"
 
 Task("Publish:MsBuild")
     .IsDependentOn("Build")
     .IsDependeeOf("Publish")
     .Does<Configuration>(config => 
 {
-    Information("MsBuild Tool Version: " + config.MsBuildToolVersion.ToString());
+    Information("MsBuild Tool Version: " + config.MSBuildToolVersion.ToString());
 
     foreach(var webProject in config.Solution.WebProjects) {
         var assemblyName = config.Solution.GetProjectName(webProject);
@@ -16,7 +17,7 @@ Task("Publish:MsBuild")
         MSBuild(webProject.ProjectFilePath, c => c
             .SetConfiguration(config.Solution.BuildConfiguration)
             .SetVerbosity(Verbosity.Quiet)
-            .UseToolVersion(config.MsBuildToolVersion)
+            .UseToolVersion(config.MSBuildToolVersion)
             .WithWarningsAsError()
             .WithTarget("Package")
             .WithProperty("DeployTarget", "PipelinePreDeployCopyAllFilesToOneFolder")
