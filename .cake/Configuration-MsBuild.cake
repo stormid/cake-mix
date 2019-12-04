@@ -1,17 +1,14 @@
 #load "Configuration.cake"
-
 public partial class Configuration {
-    public MSBuildToolVersion MSBuildToolVersion { get; private set; } = MSBuildToolVersion.Default;
 
-    public Configuration SetMSBuildToolVersion(MSBuildToolVersion toolVersion, bool allowArgumentOverride = true){
-
+    public Configuration SetMSBuildToolVersion(MSBuildToolVersion toolVersion, bool allowArgumentOverride = true)
+    {
         var argument = ParseEnum<MSBuildToolVersion>(context.Argument("MSBuildToolVersion", "Default"));
-        if(allowArgumentOverride && argument != MSBuildToolVersion.Default){
-            MSBuildToolVersion = argument;
-            return this;
-        }
 
-        MSBuildToolVersion = toolVersion;
+        var version = (allowArgumentOverride && argument != MSBuildToolVersion.Default) ? argument : toolVersion;
+
+        this.TaskParameters.Add("MsBuild:Version", version);
+
         return this;
     }
 

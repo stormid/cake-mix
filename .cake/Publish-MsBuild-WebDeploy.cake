@@ -6,7 +6,9 @@ Task("Publish:MsBuild")
     .IsDependeeOf("Publish")
     .Does<Configuration>(config => 
 {
-    Information("MsBuild Tool Version: " + config.MSBuildToolVersion.ToString());
+    var toolVersion = config.GetTaskParameter<MSBuildToolVersion>("MsBuild:Version", MSBuildToolVersion.Default);
+
+    Information("MsBuild Tool Version: " + toolVersion.ToString());
 
     foreach(var webProject in config.Solution.WebProjects) {
         var assemblyName = config.Solution.GetProjectName(webProject);
@@ -17,7 +19,7 @@ Task("Publish:MsBuild")
         MSBuild(webProject.ProjectFilePath, c => c
             .SetConfiguration(config.Solution.BuildConfiguration)
             .SetVerbosity(Verbosity.Quiet)
-            .UseToolVersion(config.MSBuildToolVersion)
+            .UseToolVersion(toolVersion)
             .WithWarningsAsError()
             .WithTarget("Package")
             .WithProperty("PackageAsSingleFile", "true")
