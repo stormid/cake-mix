@@ -60,8 +60,6 @@ public partial class Configuration {
 
     public BuildVersion Version { get; }
 
-    public MSBuildToolVersion MsBuildToolVersion { get; }
-
     public SolutionParameters Solution { get; }
 
     public ArtifactsParameters Artifacts { get; }
@@ -83,8 +81,6 @@ public partial class Configuration {
         Version = BuildVersion.DetermineBuildVersion(context);
         
         Artifacts = new ArtifactsParameters(context, artifactsRootPath ?? context.Directory("artifacts"));
-
-        MsBuildToolVersion = ParseEnum<MSBuildToolVersion>(context.Argument("MsBuildToolVersion", "Default"));
     }
 
     public ICakeLog Logger => context.Log;
@@ -93,12 +89,6 @@ public partial class Configuration {
     {
         Solution.Log(logger);
     }
-
-    private static T ParseEnum<T>(string value)
-    {
-        return (T) Enum.Parse(typeof(T), value, true);
-    }
-
 }
 public enum ArtifactTypeOption {
     Zip,
