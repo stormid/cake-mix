@@ -90,6 +90,15 @@ public partial class Configuration {
         Solution.Log(logger);
     }
 
+    public T GetTaskParameter<T>(string key, T defaultValue){
+
+        if(TaskParameters.TryGetValue(key, out object value) && value is T)
+        {
+            return (T)value;
+        } 
+
+        return defaultValue;     
+    }
 }
 public enum ArtifactTypeOption {
     Zip,
