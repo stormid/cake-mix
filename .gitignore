@@ -1,0 +1,5 @@
+## Ignore cake build outputs
+artifacts/
+tools/*
+!tools/packages.config
+VersionAssemblyInfo.cs
