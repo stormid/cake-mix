@@ -42,7 +42,7 @@ Task("Test:XUnit2")
                 Configuration = config.Solution.BuildConfiguration,
                 MergeTestResults = true,
                 TestResultsFiles = testResults,
-                TestRunner = TFTestRunnerType.VSTest
+                TestRunner = TFTestRunnerType.XUnit
             });    
         }
     }
