@@ -34,13 +34,13 @@ Task("Test:DotNetCore")
     var testResults = GetFiles($"{testResultsRoot}/**/*.xml").ToArray();
     if(testResults.Any()) 
     {
-        if(BuildSystem.IsRunningOnAzurePipelinesHosted || TFBuild.IsRunningOnAzurePipelines) 
+        if(BuildSystem.IsRunningOnAzurePipelinesHosted || AzurePipelines.IsRunningOnAzurePipelines) 
         {
-            TFBuild.Commands.PublishTestResults(new TFBuildPublishTestResultsData() {
+            AzurePipelines.Commands.PublishTestResults(new AzurePipelinesPublishTestResultsData() {
                 Configuration = config.Solution.BuildConfiguration,
                 MergeTestResults = true,
                 TestResultsFiles = testResults,
-                TestRunner = TFTestRunnerType.VSTest
+                TestRunner = AzurePipelinesTestRunnerType.VSTest
             });    
         }
     }
