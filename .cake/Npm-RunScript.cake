@@ -4,7 +4,14 @@ public partial class Configuration
 {
     public Configuration RunNpmScript(string scriptName, string workingDirectory = "./")
     {
-        Npm = new NpmConfiguration(context, scriptName, workingDirectory);
+        if(Npm == null) 
+        {
+            Npm = new NpmConfiguration(context, scriptName, workingDirectory);
+        }
+        else
+        {
+            Npm.AddScript(scriptName, workingDirectory);
+        }
         return this;
     }
 
@@ -13,21 +20,48 @@ public partial class Configuration
 
 public class NpmConfiguration
 {
-    public string WorkingDirectory { get; } = "./";
-    public string ScriptName { get; } = "ci";
+    private readonly IList<NpmScriptEntry> _scriptEntries = new List<NpmScriptEntry>();
+    public IEnumerable<NpmScriptEntry> ScriptEntries => _scriptEntries.ToList();
 
     private readonly ICakeContext cakeContext;
 
     public NpmConfiguration(ICakeContext cakeContext, string scriptName, string workingDirectory)
     {
         this.cakeContext = cakeContext;
-        ScriptName = scriptName;
-        WorkingDirectory = workingDirectory ?? "./";
+        _scriptEntries.Add(new NpmScriptEntry(cakeContext, scriptName, workingDirectory));
+    }
+
+    public void AddScript(string scriptName, string workingDirectory) 
+    {
+        _scriptEntries.Add(new NpmScriptEntry(cakeContext, scriptName, workingDirectory));
     }
 
     public bool CanExecuteNpm {
-        get {
-            return cakeContext.FileExists($"{WorkingDirectory.TrimEnd('/')}/package.json");
+        get 
+        {
+            return ScriptEntries.Any(s => s.CanExecuteNpm);
+        }
+    }
+
+    public class NpmScriptEntry 
+    {
+        public string ScriptName { get; }
+        public string WorkingDirectory { get; } 
+
+        private readonly ICakeContext cakeContext;
+
+        public NpmScriptEntry(ICakeContext cakeContext, string scriptName, string workingDirectory)
+        {
+            this.cakeContext = cakeContext;
+            ScriptName = scriptName;
+            WorkingDirectory = workingDirectory ?? "./";
+        }
+
+        public bool CanExecuteNpm {
+            get 
+            {
+                return cakeContext.FileExists($"{WorkingDirectory.TrimEnd('/')}/package.json");
+            }
         }
     }
 }
@@ -38,12 +72,38 @@ Task("Npm:Install")
     .WithCriteria<Configuration>((ctx, config) => config.Npm.CanExecuteNpm)
     .Does<Configuration>(config => 
 {
-    var settings = new NpmInstallSettings();
-    settings.WorkingDirectory = config.Npm.WorkingDirectory;
-    settings.LogLevel = NpmLogLevel.Silent;
-    settings.RedirectStandardError = false;
-    settings.RedirectStandardOutput = false;
-    NpmInstall(settings);
+    foreach(var script in config.Npm.ScriptEntries) 
+    {
+        if(script.CanExecuteNpm)
+        {
+            Information($"Running Install from {script.WorkingDirectory}");
+            var settings = new NpmInstallSettings();
+            settings.WorkingDirectory = script.WorkingDirectory;
+            settings.LogLevel = NpmLogLevel.Silent;
+            settings.RedirectStandardError = false;
+            settings.RedirectStandardOutput = false;
+            NpmInstall(settings);
+        }
+    }
+});
+
+Task("Npm:Install")
+    .WithCriteria<Configuration>((ctx, config) => config.Npm.CanExecuteNpm)
+    .Does<Configuration>(config => 
+{
+    foreach(var script in config.Npm.ScriptEntries)
+    {    
+        if(script.CanExecuteNpm)
+        {
+            Information($"Running CI from {script.WorkingDirectory}");
+            var settings = new NpmCiSettings();
+            settings.WorkingDirectory = script.WorkingDirectory;
+            settings.LogLevel = NpmLogLevel.Silent;
+            settings.RedirectStandardError = false;
+            settings.RedirectStandardOutput = false;
+            NpmCi(settings);
+        }
+    }
 });
 
 Task("Npm:Build")
@@ -51,11 +111,18 @@ Task("Npm:Build")
     .WithCriteria<Configuration>((ctx, config) => config.Npm.CanExecuteNpm)
     .Does<Configuration>(config => 
 {
-    var settings = new NpmRunScriptSettings();
-    settings.WorkingDirectory = config.Npm.WorkingDirectory;
-    settings.LogLevel = NpmLogLevel.Silent;
-    settings.RedirectStandardError = false;
-    settings.RedirectStandardOutput = false;
-    settings.ScriptName = config.Npm.ScriptName;
-    NpmRunScript(settings);
+    foreach(var script in config.Npm.ScriptEntries) 
+    {   
+        if(script.CanExecuteNpm)
+        {
+            Information($"Running script {script.ScriptName} from {script.WorkingDirectory}");
+            var settings = new NpmRunScriptSettings();
+            settings.WorkingDirectory = script.WorkingDirectory;
+            settings.LogLevel = NpmLogLevel.Silent;
+            settings.RedirectStandardError = false;
+            settings.RedirectStandardOutput = false;
+            settings.ScriptName = script.ScriptName;
+            NpmRunScript(settings);
+        }
+    }
 });
