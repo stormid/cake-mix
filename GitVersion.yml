@@ -1,14 +1,16 @@
 assembly-versioning-scheme: MajorMinorPatchTag
 assembly-file-versioning-scheme: MajorMinorPatchTag
-assembly-informational-format: '{MajorMinorPatch}+{BranchName}+{CommitDate}'
+assembly-informational-format: '{MajorMinorPatch}+{BranchName}+{ShortSha}'
 mode: Mainline
-continuous-delivery-fallback-tag: 
 branches:
   release:
     mode: ContinuousDelivery
     tag: ''
   master:
+    regex: (^master$|^origin\/master$|^main$|^origin\/main$)
+    mode: ContinuousDeployment
     tag: ci
+    is-mainline: true
   pull-request:
     mode: ContinuousDeployment
     tag: pr

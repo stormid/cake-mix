@@ -1,46 +1,59 @@
 trigger:
-  batch: true
-  branches:
-    include:
-    - master
-    - release/*
-jobs:
-- job: Build
-  pool:
-    name: Storm-Build-Production
-  variables:
-    cake.buildTarget: 'CI'
-    build.configuration: 'Release'
-    cake.verbosity: 'Verbose'
-  steps:
-  - checkout: self
-    clean: true
-
-  - task: ms-codeanalysis.vss-microsoft-security-code-analysis.build-task-credscan.CredScan@2
-    displayName: 'Run CredScan'
-    continueOnError: true
-
-  - powershell: ./build.ps1 -Target "$(cake.buildTarget)" -Configuration "$(build.configuration)" -Verbosity "$(cake.verbosity)"
-    displayName: 'Cake Build'
-
-  - task: ms-codeanalysis.vss-microsoft-security-code-analysis.build-task-report.SdtReport@1
-    displayName: 'Create Security Analysis Report'
-    inputs:
-      AllTools: true
-      ToolLogsNotFoundAction: Error
-
-  - task: ms-codeanalysis.vss-microsoft-security-code-analysis.build-task-publishsecurityanalysislogs.PublishSecurityAnalysisLogs@2
-    displayName: 'Publish Security Analysis Logs'
-
-  - powershell: Write-Host '##vso[build.addbuildtag]PR'
-    displayName: 'Mark as PR Build'
-    condition: and(succeeded(), in(variables['Build.Reason'], 'PullRequest'))
-
-  - powershell: Write-Host '##vso[build.addbuildtag]Release'
-    displayName: 'Mark as Release Build'
-    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'))
-
-  - task: ms-codeanalysis.vss-microsoft-security-code-analysis.build-task-postanalysis.PostAnalysis@1
-    displayName: 'Post Analysis'
-    inputs:
-      AllTools: true
+- main
+- release/*
+stages:
+  - stage: build
+    displayName: Execute Build
+    jobs:
+      - job: BuildArtifacts
+        displayName: Build Project Artifacts
+        variables:
+          NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
+          frontend.src: 'src/frontend'
+          npm_config_cache: $(Pipeline.Workspace)/.npm
+          bicep.version: 'v0.2.212'
+          bicep.dir: '$(System.DefaultWorkingDirectory)/tools/bicep'
+          bicep.exists: false
+        pool:
+          vmImage: 'windows-latest'
+        steps:
+          - checkout: self
+            persistCredentials: true
+          - task: UseDotNet@2
+            inputs:
+              packageType: "sdk"
+              useGlobalJson: true
+          - task: UseNode@1
+            inputs:
+              version: 12.x
+          - task: Cache@2
+            inputs:
+              key: '"$(bicep.version)" | "$(Agent.OS)""'
+              path: '$(bicep.dir)'
+              cacheHitVar: 'bicep.exists'
+          - task: PowerShell@2
+            condition: ne(variables['bicep.exists'], 'true')
+            displayName: Acquire Bicep
+            inputs:
+              targetType: 'inline'
+              script: 'mkdir -Path $(bicep.dir) -Force ; Invoke-WebRequest -Uri https://github.com/Azure/bicep/releases/download/$(bicep.version)/bicep-win-x64.exe -OutFile $(bicep.dir)/bicep.exe'
+              failOnStderr: true
+              pwsh: false
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+          - task: DotNetCoreCLI@2
+            displayName: Restore dotnet tools
+            inputs:
+              command: "custom"
+              custom: "tool"
+              arguments: "restore"
+          - script: dotnet cake"
+            displayName: Run Cake
+          - task: GitTag@5
+            displayName: "Tag Artifacts"
+            condition: and(Succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'))
+            inputs:
+              workingdir: '$(SYSTEM.DEFAULTWORKINGDIRECTORY)'
+              tagUser: 'pipeline'
+              tagEmail: 'pipeline@localhost.email'
+              tag: '$(build.buildNumber)'
+              useLightweightTags: true
