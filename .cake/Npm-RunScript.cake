@@ -87,7 +87,7 @@ Task("Npm:Install")
     }
 });
 
-Task("Npm:Install")
+Task("Npm:CI")
     .WithCriteria<Configuration>((ctx, config) => config.Npm.CanExecuteNpm)
     .Does<Configuration>(config => 
 {
