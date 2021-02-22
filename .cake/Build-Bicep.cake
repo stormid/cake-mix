@@ -13,7 +13,7 @@ public partial class Configuration {
     {
         var files = bicepFilePattern
             .ToList()
-            .SelectMany(context.GetFiles)
+            .SelectMany(x => context.GetFiles(x))
             .ToArray();
 
         this.TaskParameters.Add("Bicep:Files", files);
