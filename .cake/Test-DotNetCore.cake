@@ -17,7 +17,7 @@ Task("Test:DotNetCore")
         {
             var settings = new DotNetCoreTestSettings() {
                 Configuration = config.Solution.BuildConfiguration,
-                Logger = $"trx;LogFileName={testResultsXml}",
+                Loggers = new [] { $"trx;LogFileName={testResultsXml}" },
                 NoBuild = true,
                 NoRestore = true
             };
