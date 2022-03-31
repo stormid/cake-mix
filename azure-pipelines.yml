@@ -11,44 +11,32 @@ stages:
           NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
           frontend.src: 'src/frontend'
           npm_config_cache: $(Pipeline.Workspace)/.npm
-          bicep.version: 'v0.2.212'
-          bicep.dir: '$(System.DefaultWorkingDirectory)/tools/bicep'
-          bicep.exists: false
         pool:
           vmImage: 'windows-latest'
         steps:
           - checkout: self
             persistCredentials: true
+
           - task: UseDotNet@2
             inputs:
               packageType: "sdk"
               useGlobalJson: true
+
           - task: UseNode@1
             inputs:
-              version: 12.x
-          - task: Cache@2
-            inputs:
-              key: '"$(bicep.version)" | "$(Agent.OS)""'
-              path: '$(bicep.dir)'
-              cacheHitVar: 'bicep.exists'
-          - task: PowerShell@2
-            condition: ne(variables['bicep.exists'], 'true')
-            displayName: Acquire Bicep
-            inputs:
-              targetType: 'inline'
-              script: 'mkdir -Path $(bicep.dir) -Force ; Invoke-WebRequest -Uri https://github.com/Azure/bicep/releases/download/$(bicep.version)/bicep-win-x64.exe -OutFile $(bicep.dir)/bicep.exe'
-              failOnStderr: true
-              pwsh: false
-              workingDirectory: '$(System.DefaultWorkingDirectory)'
+              version: 14.x
+
           - task: DotNetCoreCLI@2
             displayName: Restore dotnet tools
             inputs:
               command: "custom"
               custom: "tool"
               arguments: "restore"
+
           - script: dotnet cake"
             displayName: Run Cake
-          - task: GitTag@5
+
+          - task: GitTag@6
             displayName: "Tag Artifacts"
             condition: and(Succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'))
             inputs:
