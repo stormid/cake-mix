@@ -1,3 +1,5 @@
+#tool nuget:?package=NuGet.CommandLine&version=6.1.0
+
 #load "Configuration.cake"
 
 Task("Restore:NuGet")
