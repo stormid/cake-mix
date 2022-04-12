@@ -1,7 +1,7 @@
 #load "Configuration.cake"
 
 Task("CI:VSTS:UploadArtifacts")
-    .WithCriteria<Configuration>((ctx, config) => BuildSystem.IsRunningOnAzurePipelinesHosted || AzurePipelines.IsRunningOnAzurePipelines)
+    .WithCriteria<Configuration>((ctx, config) => BuildSystem.IsRunningOnAzurePipelines || AzurePipelines.IsRunningOnAzurePipelines)
     .IsDependentOn("Publish")
     .IsDependeeOf("CI:UploadArtifacts")
     .Does<Configuration>(config => 
@@ -12,7 +12,7 @@ Task("CI:VSTS:UploadArtifacts")
 
 Task("CI:VSTS:UpdateBuildNumber")
     .IsDependeeOf("CI:UpdateBuildNumber")
-    .WithCriteria<Configuration>((ctx, config) => BuildSystem.IsRunningOnAzurePipelinesHosted || AzurePipelines.IsRunningOnAzurePipelines)
+    .WithCriteria<Configuration>((ctx, config) => BuildSystem.IsRunningOnAzurePipelines || AzurePipelines.IsRunningOnAzurePipelines)
     .Does<Configuration>(config =>
 {
     Information(

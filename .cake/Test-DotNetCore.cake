@@ -34,7 +34,7 @@ Task("Test:DotNetCore")
     var testResults = GetFiles($"{testResultsRoot}/**/*.xml").ToArray();
     if(testResults.Any()) 
     {
-        if(BuildSystem.IsRunningOnAzurePipelinesHosted || AzurePipelines.IsRunningOnAzurePipelines) 
+        if(BuildSystem.IsRunningOnAzurePipelines || AzurePipelines.IsRunningOnAzurePipelines) 
         {
             AzurePipelines.Commands.PublishTestResults(new AzurePipelinesPublishTestResultsData() {
                 Configuration = config.Solution.BuildConfiguration,

@@ -1,4 +1,4 @@
-#addin "nuget:?package=Cake.Npm&version=1.0.0"
+#addin "nuget:?package=Cake.Npm&version=2.0.0"
 
 public partial class Configuration 
 {
